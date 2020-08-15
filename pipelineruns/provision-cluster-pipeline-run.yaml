@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: openshift-install-run
+spec:
+  pipelineRef:
+    name: openshift-install
+  params:
+    - name: PLATFORM
+      value: aws
+    - name: BASE_DOMAIN
+      value: devcluster.openshift.com
+    - name: CLUSTER_NAME
+      value: vinjain-f2f-demo
+    - name: REGION
+      value: us-east-2
+    - name: REPLICAS
+      value: "3"
+    - name: OPENSHIFT_INSTALLER_IMAGE
+      value: "docker.io/praveen4g0/release-tests-bootstrap-image:v0.0.2"
+  workspaces:
+    - name: install-dir
+      persistentvolumeclaim:
+        claimName: install-dir
+    - name: secrets
+      secret:
+        secretName: aws-credentials

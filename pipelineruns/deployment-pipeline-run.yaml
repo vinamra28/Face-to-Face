@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: v2-pr-
+spec:
+  serviceAccountName: quay-login
+  params:
+    - name: GIT_URL
+      value: https://github.com/vinamra28/social-client
+    - name: SONAR_HOST_URL
+      value: http://sonarqube-sonarqube.apps.xxxx.devcluster.openshift.com
+    - name: IMAGE_NAME
+      value: quay.io/vinamra2807/social-client:v2
+    - name: SERVICE_NAME
+      value: my-client
+    - name: NEW_VERSION
+      value: v2
+  pipelineRef:
+    name: f2f-pipeline
+  workspaces:
+    - name: install-dir
+      persistentvolumeclaim:
+        claimName: install-dir
+    - name: shared-workspace
+      persistentvolumeclaim:
+        claimName: shared-dir
+    - name: sonar-settings
+      emptyDir: {}
+    - name: tokens-dir
+      configmap:
+        name: tokens-configmap

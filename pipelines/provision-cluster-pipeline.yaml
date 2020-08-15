@@ -1,0 +1,43 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: openshift-install
+spec:
+  workspaces:
+    - name: install-dir
+    - name: secrets
+  params:
+    - name: PLATFORM
+      type: string
+    - name: BASE_DOMAIN
+      type: string
+    - name: CLUSTER_NAME
+      type: string
+    - name: REGION
+      type: string
+    - name: REPLICAS
+      type: string
+    - name: OPENSHIFT_INSTALLER_IMAGE
+      type: string
+  tasks:
+    - name: provision-cluster
+      taskRef:
+        name: openshift-install
+      workspaces:
+        - name: install-dir
+          workspace: install-dir
+        - name: secrets
+          workspace: secrets
+      params:
+        - name: PLATFORM
+          value: $(params.PLATFORM)
+        - name: BASE_DOMAIN
+          value: $(params.BASE_DOMAIN)
+        - name: CLUSTER_NAME
+          value: $(params.CLUSTER_NAME)
+        - name: REGION
+          value: $(params.REGION)
+        - name: REPLICAS
+          value: $(params.REPLICAS)
+        - name: OPENSHIFT_INSTALLER_IMAGE
+          value: $(params.OPENSHIFT_INSTALLER_IMAGE)

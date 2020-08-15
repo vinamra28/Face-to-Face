@@ -1,0 +1,92 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: f2f-pipeline
+spec:
+  workspaces:
+    - name: install-dir
+    - name: shared-workspace
+    - name: sonar-settings
+    - name: tokens-dir
+  params:
+    - name: GIT_URL
+    - name: SONAR_HOST_URL
+    - name: IMAGE_NAME
+    - name: SERVICE_NAME
+    - name: NEW_VERSION
+  tasks:
+    - name: fetch-repository
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: subdirectory
+          value: ""
+        - name: deleteExisting
+          value: "true"
+
+    - name: replace-tokens
+      taskRef:
+        name: replace-tokens
+      runAfter:
+        - fetch-repository
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: token
+          workspace: tokens-dir
+      params:
+        - name: inputFilePath
+          value: "./k8s/deployment.yaml"
+
+    - name: sonar-scan
+      taskRef:
+        name: sonarqube-scanner
+      runAfter:
+        - replace-tokens
+      workspaces:
+        - name: source-dir
+          workspace: shared-workspace
+        - name: sonar-settings
+          workspace: sonar-settings
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.SONAR_HOST_URL)
+        - name: SONAR_PROJECT_KEY
+          value: "node-project"
+
+    - name: build-and-push
+      taskRef:
+        name: buildah
+      runAfter:
+        - sonar-scan
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_NAME)
+        - name: TLSVERIFY
+          value: "false"
+
+    - name: blue-green-deploy
+      taskRef:
+        name: blue-green-deploy
+      runAfter:
+        - build-and-push
+      workspaces:
+        - name: manifest-dir
+          workspace: shared-workspace
+        - name: install-dir
+          workspace: install-dir
+      params:
+        - name: SERVICE_NAME
+          value: $(params.SERVICE_NAME)
+        - name: NEW_VERSION
+          value: $(params.NEW_VERSION)
+        - name: MANIFEST
+          value: "./k8s/"
